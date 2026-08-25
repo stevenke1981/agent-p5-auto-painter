@@ -1,0 +1,95 @@
+{
+  "canvas": {
+    "width": 1000,
+    "height": 700,
+    "background": "#f6f1e8"
+  },
+  "seed": 42,
+  "renderer": "hybrid",
+  "build": "p5",
+  "layers": [
+    {
+      "id": "background",
+      "zIndex": 0,
+      "elements": [
+        {
+          "id": "bg-fill",
+          "type": "shape",
+          "drawStrategy": "primitive",
+          "bbox": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "style": {
+            "fill": "#f6f1e8"
+          },
+          "geometry": {
+            "kind": "rect"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lettering",
+      "zIndex": 10,
+      "elements": [
+        {
+          "id": "title-main",
+          "type": "text",
+          "drawStrategy": "text",
+          "bbox": [
+            0.07,
+            0.08,
+            0.35,
+            0.1
+          ],
+          "text": {
+            "content": "夏日散步",
+            "language": "zh-Hant",
+            "font": {
+              "family": [
+                "Noto Sans TC",
+                "sans-serif"
+              ],
+              "size": 40
+            },
+            "align": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.2,
+            "rotation": 0,
+            "renderMode": "p5-text"
+          }
+        },
+        {
+          "id": "subtitle-en",
+          "type": "text",
+          "drawStrategy": "text",
+          "bbox": [
+            0.07,
+            0.145,
+            0.28,
+            0.05
+          ],
+          "text": {
+            "content": "Summer Walk",
+            "language": "en",
+            "font": {
+              "family": [
+                "Inter",
+                "sans-serif"
+              ],
+              "size": 26
+            },
+            "align": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.2,
+            "rotation": 0,
+            "renderMode": "p5-text"
+          }
+        }
+      ]
+    }
+  ]
+}

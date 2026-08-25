@@ -1,0 +1,100 @@
+version: 1
+language: zh-TW
+mode: reconstruct
+renderer: p5-brush
+build: p5
+canvas:
+  width: auto
+  height: auto
+  fallback_width: 1024
+  fallback_height: 1024
+  preserve_reference_aspect_ratio: true
+coordinate_space: top-left
+seed: 42
+iteration_limit: 4
+max_elements_initial_pass: 40
+quality:
+  fidelity_priority:
+    - composition
+    - silhouette
+    - palette
+    - text_layout
+    - local_detail
+    - texture
+  simplify_before_detail: true
+  delta_edit_only_after_first_render: true
+vision:
+  require_actual_image_observation: true
+  require_source_dimensions: true
+  infer_unreadable_text: false
+  output_uncertainty: true
+render:
+  brush_scale_auto: true
+  default_brush_scale_for_600px: 3
+  pixel_density: 1
+  transparent_background: false
+  lettering_layer_enabled: true
+  lettering_default_render_mode: p5-text
+  lettering_allow_outline_mode: true
+  lettering_safe_unicode: true
+lettering:
+  enabled: true
+  supported_languages:
+    - zh-Hant
+    - zh-Hans
+    - en
+    - ja
+    - ko
+    - th
+  default_font_families:
+    zh-Hant: ["Noto Sans TC", "Noto Serif TC", "sans-serif"]
+    zh-Hans: ["Noto Sans SC", "Noto Serif SC", "sans-serif"]
+    en: ["Inter", "Noto Sans", "Arial", "sans-serif"]
+    ja: ["Noto Sans JP", "Noto Serif JP", "sans-serif"]
+    ko: ["Noto Sans KR", "Noto Serif KR", "sans-serif"]
+    th: ["Noto Sans Thai", "Noto Serif Thai", "sans-serif"]
+  default_alignment: left
+  default_line_height_ratio: 1.2
+  default_letter_spacing: 0
+  fallback_render_mode_order:
+    - p5-text
+    - text-outline
+  do_not_guess_unreadable_text: true
+validation:
+  require_unique_ids: true
+  require_z_order: true
+  check_bounds: true
+  require_fixed_seed: true
+  visual_compare_if_available: true
+  max_major_fixes_per_iteration: 3
+  require_text_language_for_text_elements: true
+  require_text_content_for_text_elements: true
+style_presets:
+  geometric-clean:
+    renderer: p5
+    texture: none
+    line_jitter: 0
+  pencil-sketch:
+    renderer: p5-brush
+    brush: HB
+    texture: graphite
+    line_jitter: 0.12
+  ink-marker:
+    renderer: p5-brush
+    brush: rotring
+    texture: marker
+    line_jitter: 0.05
+  watercolor:
+    renderer: p5-brush
+    brush: HB
+    fill: watercolor
+    fill_bleed: 0.12
+  charcoal:
+    renderer: p5-brush
+    brush: charcoal
+    texture: dry-media
+    line_jitter: 0.18
+  poster-lettered:
+    renderer: hybrid
+    brush: rotring
+    lettering_render_mode: mixed

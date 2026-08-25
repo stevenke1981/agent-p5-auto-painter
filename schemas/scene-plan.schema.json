@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent p5 Auto Painter Scene Plan",
+  "type": "object",
+  "required": [
+    "canvas",
+    "seed",
+    "renderer",
+    "layers"
+  ],
+  "properties": {
+    "canvas": {
+      "type": "object",
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "background": {
+          "type": "string"
+        }
+      }
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "renderer": {
+      "enum": [
+        "p5",
+        "p5-brush",
+        "hybrid"
+      ]
+    },
+    "build": {
+      "enum": [
+        "p5",
+        "standalone"
+      ]
+    },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "zIndex",
+          "elements"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "zIndex": {
+            "type": "number"
+          },
+          "elements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "drawStrategy"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "shape",
+                    "text"
+                  ]
+                },
+                "drawStrategy": {
+                  "enum": [
+                    "primitive",
+                    "polygon",
+                    "bezier",
+                    "spline",
+                    "freehand",
+                    "repeated-marks",
+                    "watercolor",
+                    "hatch",
+                    "mass",
+                    "text"
+                  ]
+                },
+                "bbox": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "style": {
+                  "type": "object"
+                },
+                "geometry": {
+                  "type": "object"
+                },
+                "text": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string"
+                    },
+                    "language": {
+                      "enum": [
+                        "zh-Hant",
+                        "zh-Hans",
+                        "en",
+                        "ja",
+                        "ko",
+                        "th"
+                      ]
+                    },
+                    "font": {
+                      "type": "object",
+                      "properties": {
+                        "family": {
+                          "type": [
+                            "string",
+                            "array"
+                          ]
+                        },
+                        "size": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "weight": {
+                          "type": [
+                            "string",
+                            "number"
+                          ]
+                        },
+                        "style": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "align": {
+                      "enum": [
+                        "left",
+                        "center",
+                        "right"
+                      ]
+                    },
+                    "verticalAlign": {
+                      "enum": [
+                        "top",
+                        "middle",
+                        "bottom"
+                      ]
+                    },
+                    "lineHeight": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "letterSpacing": {
+                      "type": "number"
+                    },
+                    "rotation": {
+                      "type": "number"
+                    },
+                    "renderMode": {
+                      "enum": [
+                        "p5-text",
+                        "text-outline",
+                        "mixed"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

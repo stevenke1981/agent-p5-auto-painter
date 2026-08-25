@@ -1,0 +1,32 @@
+{
+  "canvas": {"width": 720, "height": 480, "background": "#f3ead7"},
+  "seed": 42,
+  "renderer": "p5-brush",
+  "build": "p5",
+  "layers": [
+    {
+      "id": "background",
+      "zIndex": 0,
+      "elements": [
+        {
+          "id": "sky-wash",
+          "drawStrategy": "watercolor",
+          "bbox": [0, 0, 1, 0.65],
+          "style": {"fill": "#a8c5d1", "opacity": 85}
+        }
+      ]
+    },
+    {
+      "id": "landscape",
+      "zIndex": 10,
+      "elements": [
+        {
+          "id": "mountain-mass",
+          "drawStrategy": "polygon",
+          "bbox": [0, 0.43, 1, 0.57],
+          "style": {"fill": "#71876b"}
+        }
+      ]
+    }
+  ]
+}
