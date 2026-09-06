@@ -2,6 +2,7 @@
 """Real Chromium checks. --text-only needs no network and does not test p5/WebGL."""
 from __future__ import annotations
 import argparse
+import base64
 import functools
 import hashlib
 import http.server
@@ -67,6 +68,8 @@ def full_probe(browser, base, output):
             if page.evaluate('window.__PAINTER__.error'):
                 raise AssertionError('redraw reported an error')
             after = canvas.evaluate('(el) => el.toDataURL()')
+            (output / f'{name}-before.png').write_bytes(base64.b64decode(before.split(',', 1)[1]))
+            (output / f'{name}-after.png').write_bytes(base64.b64decode(after.split(',', 1)[1]))
             if before != after:
                 raise AssertionError(f'{name}: fixed-seed redraw differs')
             stats = canvas.evaluate('''el => {
