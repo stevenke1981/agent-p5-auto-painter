@@ -141,7 +141,10 @@
     text.pixelDensity(1);
     orderedElements(scene).filter(el => el.drawStrategy === 'text').forEach(el => drawTextBlock(text, el, scene));
     const button = root.document.getElementById('download');
-    if (button) button.onclick = () => root.saveCanvas(canvas, 'agent-p5-painting', 'png');
+    if (button) button.onclick = () => {
+      try { root.saveCanvas(canvas.elt, 'agent-p5-painting', 'png'); }
+      catch (error) { fail(error); }
+    };
     return { scene, text };
   }
   function drawShape(el, scene) {
