@@ -1,31 +1,10 @@
 # Multilingual Lettering Guide
 
-## 目標
+保留使用者 exact text 與 UTF-8，不擅自繁簡轉換、翻譯或用拼音代替缺字。圖片上無法辨識的文字列入 uncertainty，不猜測重建。
 
-讓 Agent 可以在圖畫上加入 **中、英、日、韓、泰文** 題字，同時兼顧：
+## 字型策略
 
-- 可讀性
-- 版面一致性
-- 與插畫風格的融合
-- 正確字型 fallback
-- 安全 Unicode/UTF-8 輸出
-
-## 基本流程
-
-1. 取得文字內容與語言。
-2. 決定文字角色：主標 / 副標 / 標籤 / 註記 / 簽名。
-3. 決定放置區域與 bbox。
-4. 選擇字型家族。
-5. 選擇渲染模式：`p5-text`、`text-outline` 或 `mixed`。
-6. 渲染後檢查：
-   - 是否溢出 bbox
-   - 是否斷行錯誤
-   - 是否字體 fallback 到不合適的字
-   - 是否和底圖對比太弱
-
-## 語言與字型建議
-
-| Language | Preferred Sans | Preferred Serif |
+| language | Sans | Serif |
 |---|---|---|
 | zh-Hant | Noto Sans TC | Noto Serif TC |
 | zh-Hans | Noto Sans SC | Noto Serif SC |
@@ -34,67 +13,26 @@
 | ko | Noto Sans KR | Noto Serif KR |
 | th | Noto Sans Thai | Noto Serif Thai |
 
-## 建議的 HTML 字型載入
+可以使用使用者合法提供的其他字型。本庫不分發字型檔，也不保證系統已有 Noto。web fonts 需要網路；離線使用須準備合法字型資產及正確 @font-face。
 
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+Thai:wght@400;700&display=swap" rel="stylesheet">
-```
+## 正確渲染方式
 
-若需襯線，也可改載 Noto Serif 系列。
+WEBGL 的 textFont 不能直接依賴 CSS 字型名稱；使用 loadFont 所得物件，或在 P2D / Canvas2D 圖層繪製後合成。範例使用後者，保留瀏覽器對泰文與 combining marks 的 shaping。
 
-## p5 文字實作範例
+不要只等待 document.fonts.ready：未請求的 font face 可能尚未下載。先對每個文字區塊呼叫 `document.fonts.load(fontSpec, content)`，以內容觸發 Google Fonts unicode-range 子集載入。範例最多等待 8 秒，載入失敗、逾時或只使用系統 fallback 會在狀態列警告。
 
-```js
-function drawTextBlock({content, x, y, w, h, fontFamily, size, color, align='left', valign='top', lineHeight=1.2}) {
-  push();
-  textFont(fontFamily);
-  textSize(size);
-  textLeading(size * lineHeight);
-  fill(color);
-  noStroke();
+字型載入成功不代表每個字形都有覆蓋；仍須實際檢查中文字形、韓文、日文及泰文上下標。fallback 可能讓構圖或寬度改變，最終畫面不能只憑 API 回傳值判定。
 
-  const hAlign = align === 'center' ? CENTER : align === 'right' ? RIGHT : LEFT;
-  const vAlign = valign === 'middle' ? CENTER : valign === 'bottom' ? BOTTOM : TOP;
-  textAlign(hAlign, vAlign);
+`Painter.drawTextBlock()` 使用整行 fillText 與 metrics；水平 align / 垂直 verticalAlign 各算一次。font.weight、font.style、lineHeight、rotation、letterSpacing 從 Scene Plan 讀取。瀏覽器不支援 native letterSpacing 時明確報錯，不能拆散泰文來模擬。明確換行才斷行；字級縮小會留下 warning，不能默默改文字內容。
 
-  const tx = align === 'center' ? x + w / 2 : align === 'right' ? x + w : x;
-  const ty = valign === 'middle' ? y + h / 2 : valign === 'bottom' ? y + h : y;
-  text(content, tx, ty, w, h);
-  pop();
-}
-```
+## 輪廓文字與手寫
 
-## 何時使用 text-outline
+`text-outline` 適合已取得輪廓且需要筆刷外框的標題；outline 不等於筆順。中文書寫筆順與泰文 shaping 不能靠任意拆字或字形描邊推定。`mixed` 應拆為可分別驗證的文字區塊。
 
-使用 `text-outline` 當：
+shared demo runtime 只實作 p5-text。Agent 使用輪廓工具、進階排版或自訂 renderer 後，必須驗證產物；沒有實作就明示 fallback，不把 enum 存在當成可執行能力。
 
-- 使用者明確要求手寫感 / 書法感 / 筆刷字。
-- 標題必須與插圖筆觸一致。
-- 文字本身是畫面主體的一部分。
+## 驗收
 
-不要在以下情況優先用 outline：
+逐項確認原文、繁簡、缺字、baseline、換行、bbox、旋轉後邊界、對比與主體遮擋。視覺相似度與字形正確性是人工/視覺模型檢查；靜態測試只保證結構與部分排版計算。
 
-- 小字說明
-- 泰文小字
-- 高密度資訊文字
-- 必須極高可讀性且時間有限
-
-## 多語混排建議
-
-- 不同語言可各自成為獨立 text block，不一定硬塞進同一個 `text()`。
-- 主標與副標可分兩層：例如中文主標 + 英文副標。
-- 若同一區塊混排，需檢查 baseline 與 line height。
-- 泰文避免過小字級；常比同級英文略大 5–10%。
-- 日文 / 中文標題可使用較緊的 tracking；英文全大寫時可略增 letter spacing。
-
-## 驗收檢查表
-
-- 文字內容與使用者要求完全一致。
-- 無亂碼、問號、缺字。
-- 語言標記正確。
-- 字型 fallback 合理。
-- 題字位置不遮擋關鍵主體（除非使用者要求）。
-- 對比足夠，仍可讀。
-- 如果是雙語或多語，層級清楚。
+官方文件：https://p5js.org/reference/p5/textFont/ 、https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet/load

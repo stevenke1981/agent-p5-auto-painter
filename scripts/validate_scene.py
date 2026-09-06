@@ -1,86 +1,141 @@
 #!/usr/bin/env python3
+"""Read-only Draft 2020-12 and semantic validation for agent scene documents."""
+from __future__ import annotations
+
+import argparse
 import json
+import math
 import sys
+from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
-TEXT_LANGS = {"zh-Hant", "zh-Hans", "en", "ja", "ko", "th"}
-TEXT_RENDER_MODES = {"p5-text", "text-outline", "mixed"}
+ROOT = Path(__file__).resolve().parents[1]
+MAX_BYTES = 10 * 1024 * 1024
+EPSILON = 1e-9
 
 
-def main(path):
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
-    ids = set()
-    errors = []
+def pointer(parts: Any) -> str:
+    return "/" + "/".join(str(p).replace("~", "~0").replace("/", "~1") for p in parts)
 
-    canvas = data.get("canvas", {})
-    if canvas.get("width", 0) <= 0 or canvas.get("height", 0) <= 0:
-        errors.append("canvas width/height must be positive")
 
-    if "seed" not in data:
-        errors.append("fixed seed is required")
+def reject_constant(value: str) -> None:
+    raise ValueError(f"non-finite JSON number: {value}")
 
-    renderer = data.get("renderer")
-    build = data.get("build", "p5")
-    if renderer not in {"p5", "p5-brush", "hybrid"}:
-        errors.append("invalid renderer")
-    if build not in {"p5", "standalone"}:
-        errors.append("invalid build")
 
-    for layer in data.get("layers", []):
-        lid = layer.get("id")
-        if not lid:
-            errors.append("layer missing id")
-        elif lid in ids:
-            errors.append(f"duplicate id: {lid}")
-        else:
-            ids.add(lid)
+def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
 
-        for el in layer.get("elements", []):
-            eid = el.get("id")
-            if not eid:
-                errors.append("element missing id")
-            elif eid in ids:
-                errors.append(f"duplicate id: {eid}")
-            else:
-                ids.add(eid)
 
-            bbox = el.get("bbox")
-            if bbox is not None:
-                if len(bbox) != 4:
-                    errors.append(f"{eid}: bbox must have 4 values")
-                else:
-                    x, y, w, h = bbox
-                    if w <= 0 or h <= 0:
-                        errors.append(f"{eid}: bbox w/h must be positive")
-                    if not el.get("allowCrop", False) and (x < 0 or y < 0 or x + w > 1 or y + h > 1):
-                        errors.append(f"{eid}: bbox outside normalized canvas")
+def read_json(path: str) -> Any:
+    if path == "-":
+        text = sys.stdin.read(MAX_BYTES + 1)
+        if len(text.encode("utf-8")) > MAX_BYTES:
+            raise ValueError("input exceeds 10 MiB")
+    else:
+        with Path(path).open("rb") as stream:
+            raw = stream.read(MAX_BYTES + 1)
+        if len(raw) > MAX_BYTES:
+            raise ValueError("input exceeds 10 MiB")
+        text = raw.decode("utf-8-sig")
+    return json.loads(text.lstrip("\ufeff"), parse_constant=reject_constant,
+                      object_pairs_hook=unique_object)
 
-            if el.get("type") == "text" or el.get("drawStrategy") == "text":
-                t = el.get("text") or {}
-                content = t.get("content")
-                language = t.get("language")
-                render_mode = t.get("renderMode", "p5-text")
-                font = t.get("font") or {}
 
-                if not isinstance(content, str) or content == "":
-                    errors.append(f"{eid}: text.content is required for text elements")
-                if language not in TEXT_LANGS:
-                    errors.append(f"{eid}: unsupported or missing text.language")
-                if render_mode not in TEXT_RENDER_MODES:
-                    errors.append(f"{eid}: invalid text.renderMode")
-                if font and "size" in font and font["size"] <= 0:
-                    errors.append(f"{eid}: text.font.size must be positive")
+def nonfinite_paths(value: Any, path: tuple = ()) -> list[str]:
+    if isinstance(value, float) and not math.isfinite(value):
+        return [f"{pointer(path)}: number must be finite"]
+    if isinstance(value, dict):
+        return [e for k, v in value.items() for e in nonfinite_paths(v, (*path, k))]
+    if isinstance(value, list):
+        return [e for k, v in enumerate(value) for e in nonfinite_paths(v, (*path, k))]
+    return []
 
+
+@lru_cache(maxsize=2)
+def schema_validator(kind: str):
+    from jsonschema import Draft202012Validator
+    if kind not in {"plan", "analysis"}:
+        raise ValueError("kind must be plan or analysis")
+    schema = json.loads((ROOT / "schemas" / f"scene-{kind}.schema.json").read_text("utf-8"))
+    Draft202012Validator.check_schema(schema)
+    return Draft202012Validator(schema)
+
+
+def validate_document(data: Any, kind: str = "plan") -> list[str]:
+    """Return deterministic diagnostics; never mutate input or run scene code."""
+    validator = schema_validator(kind)
+    errors = nonfinite_paths(data)
     if errors:
-        for e in errors:
-            print("ERROR:", e)
-        return 1
-    print("OK: scene plan passed static validation")
-    return 0
+        return errors
+    errors = [f"{pointer(e.absolute_path)}: {e.message}" for e in validator.iter_errors(data)]
+    if errors:  # Do not assume types are usable until the schema has passed.
+        return sorted(errors)
+    ids: dict[str, str] = {}
+
+    def check_item(item: dict[str, Any], path: tuple, bbox: bool = True) -> None:
+        name = item["id"]
+        location = pointer((*path, "id"))
+        if name in ids:
+            errors.append(f"{location}: duplicate id {name!r}; first at {ids[name]}")
+        else:
+            ids[name] = location
+        if bbox and "bbox" in item and not item.get("allowCrop", False):
+            x, y, w, h = item["bbox"]
+            if x < -EPSILON or y < -EPSILON or x + w > 1 + EPSILON or y + h > 1 + EPSILON:
+                errors.append(f"{pointer((*path, 'bbox'))}: outside normalized canvas; use allowCrop explicitly")
+
+    if kind == "plan":
+        if data.get("build", "p5") == "standalone" and data["renderer"] != "p5-brush":
+            errors.append("/build: standalone requires renderer p5-brush")
+        for i, layer in enumerate(data["layers"]):
+            check_item(layer, ("layers", i), bbox=False)
+            for j, element in enumerate(layer["elements"]):
+                check_item(element, ("layers", i, "elements", j))
+    else:
+        source = data["source"]
+        if not math.isclose(source["aspectRatio"], source["width"] / source["height"], rel_tol=1e-3):
+            errors.append("/source/aspectRatio: inconsistent with width / height (tolerance 0.1%)")
+        for i, element in enumerate(data["elements"]):
+            check_item(element, ("elements", i))
+    return sorted(errors)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("path", help="UTF-8 JSON file, or - for stdin")
+    parser.add_argument("--kind", choices=("plan", "analysis"), default="plan")
+    parser.add_argument("--json", action="store_true", dest="as_json", help="machine-readable diagnostics")
+    args = parser.parse_args(argv)
+    code = 0
+    try:
+        data = read_json(args.path)
+        errors = validate_document(data, args.kind)
+        code = 1 if errors else 0
+    except ImportError:
+        errors = ["missing jsonschema; run: python -m pip install -r requirements.txt"]
+        code = 2
+    except (OSError, ValueError, UnicodeError, RecursionError, OverflowError) as exc:
+        errors = [str(exc)]
+        code = 2
+    result = {"valid": code == 0, "kind": args.kind, "path": args.path, "errors": errors}
+    if args.as_json:
+        # ASCII escaping is deliberate: JSON round-trips Unicode even in legacy Windows consoles.
+        print(json.dumps(result, ensure_ascii=True))
+    elif errors:
+        for error in errors:
+            message = f"ERROR: {error}"
+            encoding = sys.stderr.encoding or "utf-8"
+            print(message.encode(encoding, errors="backslashreplace").decode(encoding), file=sys.stderr)
+    else:
+        print(f"OK: scene {args.kind} passed schema and semantic validation")
+    return code
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("usage: validate_scene.py scene-plan.json")
-        raise SystemExit(2)
-    raise SystemExit(main(sys.argv[1]))
+    raise SystemExit(main())

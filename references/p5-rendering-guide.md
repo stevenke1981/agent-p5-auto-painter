@@ -1,117 +1,35 @@
 # p5 Rendering Guide for Agents
 
-## Geometry model
+## Scene Plan 與範例 runtime
 
-Borrow the useful model from p5-code-painter: represent every editable graphic with stable properties rather than raw drawing commands only.
+完整 Schema 是 renderer-neutral 的計畫格式，不是「所有策略都有內建 renderer」的承諾。shared runtime 位於 `examples/shared/painter.js`，由兩個範例的 async setup 呼叫 `Painter.prepare()`，draw 呼叫 `Painter.render()`。
 
-Recommended element shape:
+範例使用 normalized canvas 座標；bbox 為 `[x,y,w,h]`，geometry.points 的每個 `[x,y]` 也相對整張 canvas（不是相對 bbox）。layers / elements 均依 zIndex 穩定排序，相同 zIndex 保留原順序。字型大小與 strokeWeight 使用像素/brush 權重，不是 normalized 比例。
 
-```json
-{
-  "id": "face-outline",
-  "type": "shape",
-  "bbox": [0.28, 0.17, 0.44, 0.51],
-  "rotation": 0,
-  "fill": "#F0C6A4",
-  "stroke": "#2B201C",
-  "strokeWeight": 2,
-  "zIndex": 20
-}
-```
+| drawStrategy | 範例需要的資料 |
+|---|---|
+| primitive | bbox；geometry.kind 為 rect 或 circle |
+| polygon / watercolor | bbox；geometry.points 至少 3 點 |
+| spline | bbox；geometry.points 至少 2 點，可選 curvature |
+| repeated-marks | bbox；geometry.count（0–10000），在 bbox 內繪製固定 seed 的草狀線段 |
+| text | bbox；text.content、language、font；可選文字排版欄位 |
 
-Recommended text element:
+style 支援 fill、opacity（0–255）、bleed、stroke、strokeWeight、brush；`style.medium: p5` 強制該形狀用原生 p5。`renderer: p5` 時全部用原生繪製；其 spline 是有警告的 polyline 近似，不冒充 brush spline。
 
-```json
-{
-  "id": "title-main",
-  "type": "text",
-  "drawStrategy": "text",
-  "bbox": [0.08, 0.06, 0.42, 0.12],
-  "text": {
-    "content": "夏日散步",
-    "language": "zh-Hant",
-    "font": {"family": ["Noto Sans TC", "sans-serif"], "size": 42, "weight": 700},
-    "align": "left",
-    "verticalAlign": "top",
-    "lineHeight": 1.2,
-    "rotation": 0,
-    "renderMode": "p5-text"
-  }
-}
-```
+範例不支援 interleaved text：所有題字須位於最後，並先渲染至 P2D 文字層。unsupported strategy、standalone 或 text-outline 會報錯，請另外生成相應程式。畫布限制每邊 8192、總計 16 megapixels，是範例保護，不是 Schema 的通用上限。
 
-Use one of:
-- rect / roundedRect
-- circle / ellipse
-- line / polyline
-- bezier
-- polygon
-- spline
-- freehand path
-- repeated marks
-- text
+## 座標與可重現性
 
-## Code layout
+p5 P2D 原點在左上；WEBGL 原點在中心。draw 開始 push，WEBGL 平移一次 `translate(-width/2,-height/2)`，結束 pop。不能在 setup 平移後假定下一幀仍保留。
 
-```js
-const CFG = {
-  width: 1024,
-  height: 1024,
-  seed: 42,
-  bg: '#f6f1e8'
-};
+每次 draw 重設 randomSeed/noiseSeed；brush.scaleBrushes 只在 setup 執行一次。固定 pixelDensity(1) 防止 Retina 或系統縮放偷偷改變 PNG 實際尺寸。固定依賴、seed、字型與環境後再比較圖片；不同 GPU 不保證逐像素一致。
 
-function setup() {
-  createCanvas(CFG.width, CFG.height, WEBGL);
-  randomSeed(CFG.seed);
-  noiseSeed(CFG.seed);
-  noLoop();
-}
+## 文字與版面
 
-function draw() {
-  background(CFG.bg);
-  translate(-width/2, -height/2);
-  drawBackgroundLayer();
-  drawMainSubject();
-  drawDetails();
-  drawLetteringLayer();
-}
-```
+使用 `text.content`，不要在 sketch 再硬編碼另一份。bbox 轉像素後，水平/垂直 anchor 只計算一次。原生 p5 的 boxed text 與 single-point text 有不同定位語意，不要先加半個 bbox，再讓 boxed text 重複置中。
 
-## Coordinate rules
+共用 drawTextBlock 使用 native Canvas2D metrics 計算整行的 ascent、descent、寬度與 leading，在 P2D 畫好後以 image 合成。明確換行 `\n` 才分行，不做未知語言的自動斷字。超出 bbox 時縮小字級並留下 warning；文字旋轉以 bbox 中心為基準，旋轉後是否超出畫布仍須視覺確認。
 
-Scene analysis uses top-left coordinates because they map naturally to image pixels and bbox detection.
+更複雜的字形輪廓、bezier、freehand、mass、hatch、紋理與局部編輯請保留穩定 element ID，讓 Agent 寫對應 renderer。不要以大量無意義控制點掩蓋不準確輪廓。
 
-p5 WEBGL uses center origin. Always translate once at the beginning of the render pass:
-
-```js
-translate(-width/2, -height/2);
-```
-
-After that, all Scene Plan coordinates remain top-left based.
-
-## Text placement rules
-
-- Keep text in its own layer when possible.
-- Convert normalized bbox `[x, y, w, h]` to canvas coordinates before drawing text.
-- Prefer using the bbox as a safe text block region, not only a single point.
-- Main title can use `textSize()` relative to bbox height.
-- For multiline text, set `textLeading(fontSize * lineHeight)`.
-- For centered titles, use `textAlign(CENTER, CENTER)` and anchor the bbox center.
-
-## Shape approximation
-
-Prefer a small number of meaningful control points. A 1000-point contour is usually worse for Agent iteration than a 12–30 point polygon/spline.
-
-Use:
-- straight edges → polygon
-- organic contour → spline
-- isolated curvature → bezier
-- hair/grass/fur → repeated spline/line marks
-- soft mass → filled polygon/circle + texture layer
-- clear title/caption → text
-- brush-calligraphy title → text-outline or spline approximation
-
-## Z-order
-
-Sort `layers` and elements by zIndex before drawing. Do not rely on accidental code order.
+官方文件：https://p5js.org/reference/p5/textFont/ 、https://p5js.org/reference/p5/randomSeed/

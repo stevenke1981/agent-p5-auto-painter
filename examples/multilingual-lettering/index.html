@@ -1,15 +1,31 @@
 <!doctype html>
 <html lang="zh-Hant">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Agent p5 Auto Painter - Multilingual Lettering Example</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+Thai:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/p5@2.2/lib/p5.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/p5.brush@latest"></script>
-    <script src="./sketch.js"></script>
-  </head>
-  <body></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent p5 Auto Painter — multilingual-lettering</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;family=Noto+Sans+JP:wght@400;700&amp;family=Noto+Sans+KR:wght@400;700&amp;family=Noto+Sans+TC:wght@400;700&amp;family=Noto+Sans+Thai:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 1rem; background: #eee; font-family: system-ui, sans-serif; }
+    main { max-width: 1000px; margin: auto; }
+    #artwork canvas { display: block; max-width: 100%; height: auto !important; margin: auto; }
+    button { margin: 0.5rem 0; padding: 0.6rem 1rem; font: inherit; }
+    #status { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Agent p5 Auto Painter</h1>
+    <p id="status" role="status" aria-live="polite">正在載入；需要網路連線取得 p5.js / p5.brush。請透過 HTTP server 開啟。</p>
+    <button id="download" type="button" disabled>下載 PNG</button>
+    <div id="artwork"></div>
+    <noscript>請啟用 JavaScript 才能繪製。</noscript>
+  </main>
+  <script src="../shared/painter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@2.2.0/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5.brush@2.2.2/dist/p5.brush.js"></script>
+  <script src="sketch.js"></script>
+</body>
 </html>
