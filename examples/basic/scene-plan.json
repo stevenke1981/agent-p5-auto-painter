@@ -1,1 +1,107 @@
-{"canvas":{"width":720,"height":480,"background":"#f3ead7"},"seed":42,"renderer":"p5-brush","build":"p5","layers":[{"id":"background","zIndex":0,"elements":[{"id":"sky-wash","type":"shape","drawStrategy":"watercolor","bbox":[0,0,1,0.65],"geometry":{"points":[[0,0],[1,0],[1,0.625],[0,0.6458333333333334]]},"style":{"fill":"#a8c5d1","opacity":85,"bleed":0.12}}]},{"id":"landscape","zIndex":10,"elements":[{"id":"mountain-mass","type":"shape","drawStrategy":"polygon","bbox":[0,0.43,1,0.57],"geometry":{"points":[[0,0.6458333333333334],[0.16666666666666666,0.5],[0.3263888888888889,0.6354166666666666],[0.5,0.4375],[0.7013888888888888,0.625],[0.8611111111111112,0.5104166666666666],[1,0.625],[1,1],[0,1]]},"style":{"fill":"#71876b","opacity":115}}]},{"id":"ink","zIndex":20,"elements":[{"id":"ridge","type":"shape","drawStrategy":"spline","bbox":[0,0.43,1,0.23],"geometry":{"points":[[0,0.6458333333333334],[0.16666666666666666,0.5],[0.3263888888888889,0.6354166666666666],[0.5,0.4375],[0.7013888888888888,0.625],[0.8611111111111112,0.5104166666666666],[1,0.625]],"curvature":0.35},"style":{"stroke":"#28302c","strokeWeight":0.9}},{"id":"grass","type":"shape","drawStrategy":"repeated-marks","bbox":[0.027777777777777776,0.6875,0.9444444444444444,0.28125],"geometry":{"count":80},"style":{"stroke":"#51453d","strokeWeight":0.55}}]}]}
+{
+  "canvas": {
+    "width": 720,
+    "height": 480,
+    "background": "#f3ead7"
+  },
+  "seed": 42,
+  "renderer": "p5-brush",
+  "build": "p5",
+  "layers": [
+    {
+      "id": "background",
+      "zIndex": 0,
+      "elements": [
+        {
+          "id": "sky-wash",
+          "type": "shape",
+          "drawStrategy": "watercolor",
+          "bbox": [0, 0, 1, 0.65],
+          "geometry": {
+            "points": [
+              [0, 0],
+              [1, 0],
+              [1, 0.625],
+              [0, 0.6458333333333334]
+            ]
+          },
+          "style": {
+            "fill": "#a8c5d1",
+            "opacity": 85,
+            "bleed": 0.12
+          }
+        }
+      ]
+    },
+    {
+      "id": "landscape",
+      "zIndex": 10,
+      "elements": [
+        {
+          "id": "mountain-mass",
+          "type": "shape",
+          "drawStrategy": "polygon",
+          "bbox": [0, 0.43, 1, 0.57],
+          "geometry": {
+            "points": [
+              [0, 0.6458333333333334],
+              [0.16666666666666666, 0.5],
+              [0.3263888888888889, 0.6354166666666666],
+              [0.5, 0.4375],
+              [0.7013888888888888, 0.625],
+              [0.8611111111111112, 0.5104166666666666],
+              [1, 0.625],
+              [1, 1],
+              [0, 1]
+            ]
+          },
+          "style": {
+            "fill": "#71876b",
+            "opacity": 115
+          }
+        }
+      ]
+    },
+    {
+      "id": "ink",
+      "zIndex": 20,
+      "elements": [
+        {
+          "id": "ridge",
+          "type": "shape",
+          "drawStrategy": "spline",
+          "bbox": [0, 0.43, 1, 0.23],
+          "geometry": {
+            "points": [
+              [0, 0.6458333333333334],
+              [0.16666666666666666, 0.5],
+              [0.3263888888888889, 0.6354166666666666],
+              [0.5, 0.4375],
+              [0.7013888888888888, 0.625],
+              [0.8611111111111112, 0.5104166666666666],
+              [1, 0.625]
+            ],
+            "curvature": 0.35
+          },
+          "style": {
+            "stroke": "#28302c",
+            "strokeWeight": 0.9
+          }
+        },
+        {
+          "id": "grass",
+          "type": "shape",
+          "drawStrategy": "repeated-marks",
+          "bbox": [0.027777777777777776, 0.6875, 0.9444444444444444, 0.28125],
+          "geometry": {
+            "count": 80
+          },
+          "style": {
+            "stroke": "#51453d",
+            "strokeWeight": 0.55
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -58,7 +58,7 @@ python scripts/smoke_test.py
 python scripts/smoke_test.py --text-only
 ```
 
-完整 smoke test 檢查兩個範例、同 seed 重繪、非空畫布、題字層、PNG 下載及 Scene Plan 404 錯誤提示；報告與截圖存於 `artifacts/`。`--executable` 可指定已安裝的 Chromium。GitHub Actions 執行 Windows/Linux 驗證，以及 Linux Chromium 實測並保存證據。
+完整 smoke test 檢查兩個範例、同 seed 重繪誤差、非空畫布、題字層、PNG 下載及 Scene Plan 404 錯誤提示；報告與截圖存於 `artifacts/`。`--executable` 可指定已安裝的 Chromium。重繪比較 decoded RGBA pixels：單一色階差最多 1/255，且變動像素不得超過 0.01%；報告會記錄是否完全相同、差異像素數與最大色階差。GitHub Actions 執行 Windows/Linux 驗證，以及 Linux Chromium 實測並保存證據。
 
 ## 多語題字與支援界線
 

@@ -49,7 +49,7 @@ python scripts/validate_scene.py scene-plan.json --json
 python scripts/validate_scene.py scene-analysis.json --kind analysis --json
 ```
 
-第二個指令僅適用於確實有產出的圖片分析。驗證不會檢查所有自訂 geometry，也不會替代視覺驗收。
+analysis 指令僅適用於確實有產出的圖片分析。驗證不會檢查所有自訂 geometry，也不會替代視覺驗收。
 
 ### 3. Render strategy
 

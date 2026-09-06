@@ -33,3 +33,5 @@ p5 P2D 原點在左上；WEBGL 原點在中心。draw 開始 push，WEBGL 平移
 更複雜的字形輪廓、bezier、freehand、mass、hatch、紋理與局部編輯請保留穩定 element ID，讓 Agent 寫對應 renderer。不要以大量無意義控制點掩蓋不準確輪廓。
 
 官方文件：https://p5js.org/reference/p5/textFont/ 、https://p5js.org/reference/p5/randomSeed/
+
+Browser CI 同環境重繪以 decoded RGBA 比較：最大色階差 1/255、變動像素至多 0.01%，並分別記錄 exact / accepted。這不是跨環境的逐像素一致保證。

@@ -51,3 +51,27 @@ test('HTML pins full library versions and loads shared runtime first', () => {
     assert.doesNotMatch(html,/@latest/); assert.ok(html.indexOf('../shared/painter.js')<html.indexOf('p5@2.2.0'));
   }
 });
+test('PNG export receives HTMLCanvasElement and reports synchronous export errors', async () => {
+  const vm = require('node:vm');
+  const button = {}, status = {}, element = { setAttribute() {} };
+  const canvas = { elt: element, parent() {} };
+  const scene = { canvas: { width: 64, height: 64 }, seed: 42, renderer: 'p5', layers: [] };
+  let saved;
+  const context = {
+    location: { protocol: 'http:' }, setTimeout, clearTimeout,
+    document: { fonts: { load: async () => [] }, getElementById: id => id === 'download' ? button : status },
+    fetch: async () => ({ ok: true, json: async () => scene }),
+    pixelDensity() {}, noLoop() {}, createCanvas: () => canvas,
+    createGraphics: () => ({ pixelDensity() {} }),
+    saveCanvas: (...args) => { saved = args; }, P2D: 'p2d'
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../examples/shared/painter.js'), 'utf8'), context);
+  await context.Painter.prepare('scene-plan.json');
+  button.onclick();
+  assert.equal(saved[0], element);
+  assert.deepEqual(saved.slice(1), ['agent-p5-painting', 'png']);
+  context.saveCanvas = () => { throw Error('export failed'); };
+  button.onclick();
+  assert.equal(context.Painter.state.error, 'export failed');
+  assert.equal(button.disabled, true);
+});

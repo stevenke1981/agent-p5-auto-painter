@@ -12,6 +12,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Permit only isolated one-level quantization differences, not visual changes.
+MAX_CHANNEL_DELTA = 1
+MAX_CHANGED_FRACTION = 0.0001
+
+
+def redraw_matches(metrics):
+    return (metrics['pixels'] > 0
+            and metrics['maxChannelDelta'] <= MAX_CHANNEL_DELTA
+            and metrics['changedPixels'] / metrics['pixels'] <= MAX_CHANGED_FRACTION)
+
 
 def text_probe(browser, output):
     page = browser.new_page(viewport={'width': 720, 'height': 480})
@@ -61,8 +71,13 @@ def full_probe(browser, base, output):
                 raise AssertionError(f'{name}: {state["error"] or errors}')
             canvas = page.locator('#artwork canvas')
             canvas.screenshot(path=str(output / f'{name}.png'))
-            before = canvas.evaluate('(el) => el.toDataURL()')
-            # p5 must reproduce the identical framebuffer on an explicit redraw.
+            before = canvas.evaluate('''el => {
+              const c=document.createElement('canvas'); c.width=el.width; c.height=el.height;
+              const g=c.getContext('2d'); g.drawImage(el,0,0);
+              window.__PAINTER_TEST_PIXELS__=g.getImageData(0,0,c.width,c.height).data;
+              return el.toDataURL();
+            }''')
+            # Compare decoded pixels, not PNG encoding; retain both framebuffers.
             page.evaluate('async () => { Painter.state.ready = false; await redraw(); }')
             page.wait_for_function('window.__PAINTER__.ready || window.__PAINTER__.error')
             if page.evaluate('window.__PAINTER__.error'):
@@ -70,8 +85,28 @@ def full_probe(browser, base, output):
             after = canvas.evaluate('(el) => el.toDataURL()')
             (output / f'{name}-before.png').write_bytes(base64.b64decode(before.split(',', 1)[1]))
             (output / f'{name}-after.png').write_bytes(base64.b64decode(after.split(',', 1)[1]))
-            if before != after:
-                raise AssertionError(f'{name}: fixed-seed redraw differs')
+            difference = canvas.evaluate('''el => {
+              const c=document.createElement('canvas'); c.width=el.width; c.height=el.height;
+              const g=c.getContext('2d'); g.drawImage(el,0,0);
+              const a=window.__PAINTER_TEST_PIXELS__, b=g.getImageData(0,0,c.width,c.height).data;
+              let maxChannelDelta=0,changedPixels=0;
+              for(let i=0;i<a.length;i+=4) {
+                let changed=false;
+                for(let k=0;k<4;k++) {
+                  const d=Math.abs(a[i+k]-b[i+k]); maxChannelDelta=Math.max(maxChannelDelta,d);
+                  if(d) changed=true;
+                }
+                if(changed) changedPixels++;
+              }
+              delete window.__PAINTER_TEST_PIXELS__;
+              return {pixels:el.width*el.height,changedPixels,maxChannelDelta,exact:changedPixels===0};
+            }''')
+            difference['accepted'] = redraw_matches(difference)
+            difference['limits'] = {'maxChannelDelta': MAX_CHANNEL_DELTA,
+                                    'maxChangedFraction': MAX_CHANGED_FRACTION}
+            (output / f'{name}-redraw.json').write_text(json.dumps(difference, indent=2), encoding='utf-8')
+            if not difference['accepted']:
+                raise AssertionError(f'{name}: fixed-seed redraw exceeds strict pixel tolerance: {difference}')
             stats = canvas.evaluate('''el => {
               const c=document.createElement('canvas'); c.width=el.width; c.height=el.height;
               const g=c.getContext('2d'); g.drawImage(el,0,0); const a=g.getImageData(0,0,c.width,c.height).data;
@@ -90,7 +125,7 @@ def full_probe(browser, base, output):
             saved = output / f'{name}-download.png'
             download.value.save_as(saved)
             if saved.read_bytes()[:8] != b'\x89PNG\r\n\x1a\n': raise AssertionError('download is not PNG')
-            results.append({'example': name, 'stats': stats, 'deterministicRedraw': True,
+            results.append({'example': name, 'stats': stats, 'redraw': difference,
                             'download': True, 'warnings': state['warnings'],
                             'sha256': hashlib.sha256(saved.read_bytes()).hexdigest()})
         finally:

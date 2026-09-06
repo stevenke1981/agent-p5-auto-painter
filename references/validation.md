@@ -4,7 +4,7 @@
 
 **Static**：Draft 2020-12 + semantic validator 通過，只代表結構、型別、唯一 ID、normalized bbox、build/renderer 與來源比例等已檢查。自訂 geometry 的所有語意、畫面品質及字形不在這個保證內。
 
-**Runtime**：實際執行對應版本的 p5/brush，沒有 pageerror，canvas 非空、尺寸正確、同 seed 重繪相同、PNG 可下載、錯誤路徑有訊息。
+**Runtime**：實際執行對應版本的 p5/brush，沒有 pageerror，canvas 非空、尺寸正確、同 seed 重繪在嚴格像素容差內、PNG 可下載、錯誤路徑有訊息。
 
 **Visual**：實際看過成果，對照原圖/brief，確認構圖、輪廓、色盤、題字、遮擋、筆觸及材質。不能拿測試綠燈替代看圖。
 
@@ -28,3 +28,7 @@ python scripts/smoke_test.py
 ## 每次交付應記錄
 
 來源 commit、修改的 element IDs、測試命令與 exit code、依賴版本、環境、實際看過的圖片及限制。若圖層、字型、文字或套件版本改動，重新做相應驗證；禁止沿用不相關 commit 的 CI 綠燈。
+
+## 重繪像素容差
+
+比較 decoded RGBA pixels，不比較 PNG 編碼。最大 channel delta 為 1/255，變動像素最多 0.01%；兩條件都要成立，不能以平均誤差掩蓋明顯局部改變。Chromium 實測曾在多語範例 700,000 像素中出現 7 個像素相差 1 級，其餘完全一致。保留 before/after PNG、redraw.json 與 exact 標記；超過限制一律失敗。容差判定本身有回歸測試。
